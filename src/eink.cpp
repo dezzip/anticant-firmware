@@ -6,14 +6,16 @@
 #include "eink.h"
 #include <SPI.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_SSD1680.h>
+#include <Adafruit_EPD.h>
 
 // ============================================================================
 // Display instance
 // ============================================================================
 static Adafruit_SSD1680 display(
     EINK_WIDTH, EINK_HEIGHT,
-    PIN_EINK_DC, PIN_EINK_RST, PIN_EINK_CS, -1, PIN_EINK_BUSY
+    PIN_EINK_DC, PIN_EINK_RST, PIN_EINK_CS,
+    -1,   // SRCS — pas de SRAM externe
+    -1    // BUSY non connecté — délai interne utilisé
 );
 
 static uint32_t lastRefreshMs = 0;
@@ -23,7 +25,7 @@ static bool     initialized   = false;
 // Helper: draw a horizontal line divider
 // ============================================================================
 static void drawDivider(int16_t y) {
-    display.drawFastHLine(0, y, EINK_WIDTH, SSD1680_BLACK);
+    display.drawFastHLine(0, y, EINK_WIDTH, EPD_BLACK);
 }
 
 // ============================================================================
@@ -34,7 +36,7 @@ void einkInit() {
     display.begin();
     display.setRotation(1);  // Landscape
     display.clearBuffer();
-    display.setTextColor(SSD1680_BLACK);
+    display.setTextColor(EPD_BLACK);
     display.setTextWrap(false);
 
     // Splash screen
@@ -98,11 +100,11 @@ void einkUpdate(float cantAngle, DistancePreset distance, UserMode mode,
 
     // Battery icon (simple rectangle)
     int16_t iconX = batX - 18;
-    display.drawRect(iconX, 2, 14, 8, SSD1680_BLACK);
-    display.fillRect(iconX + 14, 4, 2, 4, SSD1680_BLACK);
+    display.drawRect(iconX, 2, 14, 8, EPD_BLACK);
+    display.fillRect(iconX + 14, 4, 2, 4, EPD_BLACK);
     int fillW = (int)(12.0f * batteryPercent / 100.0f);
     if (fillW > 0) {
-        display.fillRect(iconX + 1, 3, fillW, 6, SSD1680_BLACK);
+        display.fillRect(iconX + 1, 3, fillW, 6, EPD_BLACK);
     }
 
     drawDivider(34);
@@ -140,7 +142,7 @@ void einkUpdate(float cantAngle, DistancePreset distance, UserMode mode,
     display.print("AntiCant v1.0");
 
     // Refresh indicator (dot)
-    display.fillCircle(EINK_WIDTH - 6, 115, 2, SSD1680_BLACK);
+    display.fillCircle(EINK_WIDTH - 6, 115, 2, EPD_BLACK);
 
     display.display();
 }

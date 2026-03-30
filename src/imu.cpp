@@ -74,6 +74,9 @@ static float kalmanUpdate(KalmanState &k, float newAngle, float newRate, float d
 // ============================================================================
 
 bool imuInit() {
+    Wire.begin();  // ESP32S3 XIAO: SDA=D4(GPIO5), SCL=D5(GPIO6)
+    delay(10);     // Let I2C stabilize
+
     if (imuSensor.begin() != 0) {
         Serial.println("[IMU] ERROR: LSM6DS3 init failed!");
         return false;

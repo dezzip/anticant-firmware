@@ -11,15 +11,16 @@
 // ============================================================================
 // PINS
 // ============================================================================
-#define PIN_LEDS        D0      // WS2812B data
-#define PIN_BUTTON      D1      // Mode/distance button (INPUT_PULLUP)
-#define PIN_BATTERY     A0      // Battery voltage divider
+#define PIN_LEDS        D0      // WS2812B data (GPIO1)
+#define PIN_BUTTON      D1      // Mode/distance button (INPUT_PULLUP, GPIO2)
+#define PIN_BATTERY     D2      // Battery voltage divider (A2/GPIO3)
 
-// SPI pour e-ink SSD1680
-#define PIN_EINK_CS     D7
-#define PIN_EINK_DC     D3
-#define PIN_EINK_RST    D4
-#define PIN_EINK_BUSY   D5
+// I2C pour LSM6DS3 (SDA=D4/GPIO5, SCL=D5/GPIO6 — défaut Wire)
+// SPI pour e-ink SSD1680 (SCK=D8/GPIO7, MOSI=D10/GPIO9 — défaut SPI)
+#define PIN_EINK_CS     D7      // GPIO44
+#define PIN_EINK_DC     D3      // GPIO4
+#define PIN_EINK_RST    D6      // GPIO43
+// BUSY non connecté — le driver utilise des délais (pas assez de GPIO)
 
 // ============================================================================
 // LEDs

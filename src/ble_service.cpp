@@ -1,80 +1,105 @@
 /*
  * ble_service.cpp — BLE Module implementation
- * Uses ArduinoBLE (built-in on nRF52840).
+ * Uses NimBLE-Arduino (ESP32 native BLE stack).
  * Custom GATT service with 5 characteristics + notify.
  */
 
 #include "ble_service.h"
-#include <ArduinoBLE.h>
+#include <NimBLEDevice.h>
 
 // ============================================================================
-// BLE Service & Characteristics
+// NimBLE objects
 // ============================================================================
-static BLEService anticantService(BLE_SERVICE_UUID);
+static NimBLEServer*          pServer       = nullptr;
+static NimBLEService*         pService      = nullptr;
+static NimBLECharacteristic*  pCharCant     = nullptr;
+static NimBLECharacteristic*  pCharMode     = nullptr;
+static NimBLECharacteristic*  pCharDistance  = nullptr;
+static NimBLECharacteristic*  pCharShots    = nullptr;
+static NimBLECharacteristic*  pCharBattery  = nullptr;
 
-// Characteristics (read + notify)
-static BLEFloatCharacteristic   charCant(BLE_CHAR_CANT_UUID, BLERead | BLENotify);
-static BLEByteCharacteristic    charMode(BLE_CHAR_MODE_UUID, BLERead | BLENotify);
-static BLEByteCharacteristic    charDistance(BLE_CHAR_DISTANCE_UUID, BLERead | BLENotify);
-static BLEUnsignedShortCharacteristic charShots(BLE_CHAR_SHOTS_UUID, BLERead | BLENotify);
-static BLEByteCharacteristic    charBattery(BLE_CHAR_BATTERY_UUID, BLERead | BLENotify);
+static uint32_t lastNotifyMs    = 0;
+static bool     bleReady        = false;
+static bool     deviceConnected = false;
 
-static uint32_t lastNotifyMs = 0;
-static bool     bleReady     = false;
+// ============================================================================
+// Connection callbacks
+// ============================================================================
+class ServerCallbacks : public NimBLEServerCallbacks {
+    void onConnect(NimBLEServer* pSrv) override {
+        deviceConnected = true;
+        Serial.println("[BLE] Client connected");
+    }
+    void onDisconnect(NimBLEServer* pSrv) override {
+        deviceConnected = false;
+        Serial.println("[BLE] Client disconnected — restarting advertising");
+        NimBLEDevice::startAdvertising();
+    }
+};
 
 // ============================================================================
 // Public API
 // ============================================================================
 
 void bleInit() {
-    if (!BLE.begin()) {
-        Serial.println("[BLE] ERROR: BLE init failed!");
-        bleReady = false;
-        return;
-    }
+    NimBLEDevice::init(BLE_DEVICE_NAME);
+    NimBLEDevice::setPower(ESP_PWR_LVL_P9);  // Max TX power
 
-    // Set device name and local name
-    BLE.setLocalName(BLE_DEVICE_NAME);
-    BLE.setDeviceName(BLE_DEVICE_NAME);
-    BLE.setAdvertisedService(anticantService);
+    pServer = NimBLEDevice::createServer();
+    pServer->setCallbacks(new ServerCallbacks());
 
-    // Add characteristics to service
-    anticantService.addCharacteristic(charCant);
-    anticantService.addCharacteristic(charMode);
-    anticantService.addCharacteristic(charDistance);
-    anticantService.addCharacteristic(charShots);
-    anticantService.addCharacteristic(charBattery);
+    pService = pServer->createService(BLE_SERVICE_UUID);
 
-    // Add service
-    BLE.addService(anticantService);
+    // Create characteristics (read + notify)
+    pCharCant = pService->createCharacteristic(
+        BLE_CHAR_CANT_UUID,
+        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY
+    );
+    pCharMode = pService->createCharacteristic(
+        BLE_CHAR_MODE_UUID,
+        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY
+    );
+    pCharDistance = pService->createCharacteristic(
+        BLE_CHAR_DISTANCE_UUID,
+        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY
+    );
+    pCharShots = pService->createCharacteristic(
+        BLE_CHAR_SHOTS_UUID,
+        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY
+    );
+    pCharBattery = pService->createCharacteristic(
+        BLE_CHAR_BATTERY_UUID,
+        NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY
+    );
 
     // Set initial values
-    charCant.writeValue(0.0f);
-    charMode.writeValue((uint8_t)MODE_TRAINING);
-    charDistance.writeValue((uint8_t)DIST_100M);
-    charShots.writeValue((uint16_t)0);
-    charBattery.writeValue((uint8_t)100);
+    float initCant = 0.0f;
+    pCharCant->setValue(initCant);
+    uint8_t initMode = (uint8_t)MODE_TRAINING;
+    pCharMode->setValue(&initMode, 1);
+    uint8_t initDist = (uint8_t)DIST_100M;
+    pCharDistance->setValue(&initDist, 1);
+    uint16_t initShots = 0;
+    pCharShots->setValue(initShots);
+    uint8_t initBat = 100;
+    pCharBattery->setValue(&initBat, 1);
 
-    // Start advertising
-    BLE.advertise();
+    // Start service & advertising
+    pService->start();
+
+    NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
+    pAdvertising->addServiceUUID(BLE_SERVICE_UUID);
+    pAdvertising->setScanResponse(true);
+    pAdvertising->start();
 
     bleReady = true;
-    Serial.println("[BLE] Initialized, advertising as '" BLE_DEVICE_NAME "'");
+    Serial.println("[BLE] NimBLE initialized, advertising as '" BLE_DEVICE_NAME "'");
 }
 
 void bleUpdate(float cantAngle, UserMode mode, DistancePreset distance,
                uint16_t shotCount, uint8_t batteryPercent) {
 
-    if (!bleReady) return;
-
-    // Poll BLE events
-    BLE.poll();
-
-    // Check if central is connected
-    BLEDevice central = BLE.central();
-    if (!central || !central.connected()) {
-        return;
-    }
+    if (!bleReady || !deviceConnected) return;
 
     // Respect notify interval
     uint32_t now = millis();
@@ -83,24 +108,33 @@ void bleUpdate(float cantAngle, UserMode mode, DistancePreset distance,
     }
     lastNotifyMs = now;
 
-    // Write values → triggers notify to subscribed client
-    charCant.writeValue(cantAngle);
-    charMode.writeValue((uint8_t)mode);
-    charDistance.writeValue((uint8_t)distance);
-    charShots.writeValue(shotCount);
-    charBattery.writeValue(batteryPercent);
+    // Write values & notify subscribed clients
+    pCharCant->setValue(cantAngle);
+    pCharCant->notify();
+
+    uint8_t modeVal = (uint8_t)mode;
+    pCharMode->setValue(&modeVal, 1);
+    pCharMode->notify();
+
+    uint8_t distVal = (uint8_t)distance;
+    pCharDistance->setValue(&distVal, 1);
+    pCharDistance->notify();
+
+    pCharShots->setValue(shotCount);
+    pCharShots->notify();
+
+    pCharBattery->setValue(&batteryPercent, 1);
+    pCharBattery->notify();
 }
 
 bool bleIsConnected() {
-    if (!bleReady) return false;
-    BLEDevice central = BLE.central();
-    return (central && central.connected());
+    return bleReady && deviceConnected;
 }
 
 void bleStartAdvertising() {
-    if (bleReady) BLE.advertise();
+    if (bleReady) NimBLEDevice::startAdvertising();
 }
 
 void bleStopAdvertising() {
-    if (bleReady) BLE.stopAdvertise();
+    if (bleReady) NimBLEDevice::stopAdvertising();
 }

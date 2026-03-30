@@ -1,13 +1,13 @@
 # AntiCant — Shooting Assistant Firmware
 
-Firmware embarqué pour assistant de tir anti-cant basé sur le **Seeed XIAO BLE nRF52840 Sense**.
+Firmware embarqué pour assistant de tir anti-cant basé sur le **Seeed Studio XIAO ESP32S3**.
 
 ## Hardware
 
 | Composant | Détail |
 |-----------|--------|
-| MCU | Seeed XIAO BLE nRF52840 Sense |
-| IMU | LSM6DS3 (accéléromètre + gyroscope 6 axes, intégré) |
+| MCU | Seeed Studio XIAO ESP32S3 |
+| IMU | LSM6DS3 (accéléromètre + gyroscope 6 axes, I2C externe) |
 | LEDs | 6× WS2812B adressables (pin D0) |
 | Écran | E-ink 2.13" SSD1680 (SPI) |
 | Bouton | Pin D1 (INPUT_PULLUP) |
