@@ -51,7 +51,7 @@ void batteryInit() {
 
     // Pre-fill average buffer
     for (int i = 0; i < BATT_AVG_SAMPLES; i++) {
-        float v = (float)analogReadMilliVolts(PIN_BATTERY) / 1000.0f * BATTERY_DIVIDER_RATIO;
+        float v = (float)analogRead(PIN_BATTERY) / 4095.0f * BATTERY_VREF * BATTERY_DIVIDER_RATIO;
         samples[i] = v;
     }
     bufferFull = true;
@@ -74,8 +74,8 @@ void batteryUpdate() {
     if (now - lastReadMs < BATTERY_READ_INTERVAL_MS) return;
     lastReadMs = now;
 
-    // Read ADC (ESP32S3 — lecture calibrée en millivolts)
-    float v = (float)analogReadMilliVolts(PIN_BATTERY) / 1000.0f * BATTERY_DIVIDER_RATIO;
+    // Read ADC (nRF52840 — 12-bit, Vref = BATTERY_VREF)
+    float v = (float)analogRead(PIN_BATTERY) / 4095.0f * BATTERY_VREF * BATTERY_DIVIDER_RATIO;
 
     // Add to moving average
     samples[sampleIdx] = v;

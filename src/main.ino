@@ -1,7 +1,7 @@
 /*
  * main.ino — AntiCant Shooting Assistant Firmware
  * =================================================
- * Target:  Seeed Studio XIAO ESP32S3
+ * Target:  Seeed Studio XIAO BLE Sense nRF52840
  * Author:  AntiCant Project
  * Version: 1.0.0
  *
@@ -157,7 +157,7 @@ void setup() {
     delay(500);  // Let USB serial connect
     Serial.println("=========================================");
     Serial.println("  AntiCant Shooting Assistant v1.0");
-    Serial.println("  Seeed Studio XIAO ESP32S3");
+    Serial.println("  Seeed Studio XIAO BLE Sense nRF52840");
     Serial.println("=========================================");
 
     // Button pin
