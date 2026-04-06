@@ -38,7 +38,7 @@ void shotUpdate(float accelMagnitude) {
             shotCount++;
             detected   = true;
             lastShotMs = now;
-            Serial.printf("[SHOT] Detected! Count: %d (accel: %.2f g)\n",
+            SERIAL_PRINTF("[SHOT] Detected! Count: %d (accel: %.2f g)\n",
                           shotCount, accelMagnitude);
         }
         aboveThresh = true;

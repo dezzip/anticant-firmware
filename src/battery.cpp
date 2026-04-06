@@ -65,7 +65,7 @@ void batteryInit() {
     lowBattery = (voltage > 0.5f) && (percent < BATTERY_LOW_THRESHOLD);
 
     lastReadMs = millis();
-    Serial.printf("[BATT] Init: %.2fV → %d%% (low=%s)\n", voltage, percent,
+    SERIAL_PRINTF("[BATT] Init: %.2fV → %d%% (low=%s)\n", voltage, percent,
                   lowBattery ? "YES" : "NO");
 }
 

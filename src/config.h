@@ -8,6 +8,10 @@
 
 #include <Arduino.h>
 
+// Serial.printf() is not available on Mbed-based Arduino (nRF52840).
+// This macro provides a portable equivalent using snprintf + Serial.print.
+#define SERIAL_PRINTF(fmt, ...) do { char _spbuf[256]; snprintf(_spbuf, sizeof(_spbuf), fmt, ##__VA_ARGS__); Serial.print(_spbuf); } while(0)
+
 // ============================================================================
 // PINS
 // ============================================================================

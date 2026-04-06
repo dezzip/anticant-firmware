@@ -119,7 +119,7 @@ static void handleButton(ButtonEvent evt) {
         case BTN_SHORT_PRESS:
             // Cycle distance: 100 → 300 → 600 → 1000 → 100 ...
             currentDistance = (DistancePreset)((currentDistance + 1) % DIST_COUNT);
-            Serial.printf("[BTN] Distance → %d m (±%.1f°)\n",
+            SERIAL_PRINTF("[BTN] Distance → %d m (±%.1f°)\n",
                           DISTANCE_VALUES[currentDistance],
                           TOLERANCE_VALUES[currentDistance]);
             // Force e-ink refresh on distance change
@@ -130,7 +130,7 @@ static void handleButton(ButtonEvent evt) {
         case BTN_LONG_PRESS:
             // Cycle mode: TRAINING → COMPETITION → DISCRET → TRAINING ...
             currentMode = (UserMode)((currentMode + 1) % MODE_COUNT);
-            Serial.printf("[BTN] Mode → %s\n", MODE_NAMES[currentMode]);
+            SERIAL_PRINTF("[BTN] Mode → %s\n", MODE_NAMES[currentMode]);
             // Force e-ink refresh on mode change
             einkUpdate(imuGetCantAngle(), currentDistance, currentMode,
                        shotGetCount(), batteryGetPercent(), true);
@@ -188,7 +188,7 @@ void setup() {
 
     imuAvailable = imuOk;
     Serial.println("[INIT] ===== ALL SYSTEMS GO =====");
-    Serial.printf("[INIT] Distance: %d m | Mode: %s\n",
+    SERIAL_PRINTF("[INIT] Distance: %d m | Mode: %s\n",
                   DISTANCE_VALUES[currentDistance],
                   MODE_NAMES[currentMode]);
 }
@@ -234,7 +234,7 @@ void loop() {
     static uint32_t lastDebugMs = 0;
     if (nowMs - lastDebugMs >= 500) {
         lastDebugMs = nowMs;
-        Serial.printf("[LOOP] cant=%.1f° tol=%.1f° mode=%s dist=%dm\n",
+        SERIAL_PRINTF("[LOOP] cant=%.1f° tol=%.1f° mode=%s dist=%dm\n",
                       cantAngle, TOLERANCE_VALUES[currentDistance],
                       MODE_NAMES[currentMode],
                       DISTANCE_VALUES[currentDistance]);

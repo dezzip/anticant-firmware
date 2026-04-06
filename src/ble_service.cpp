@@ -57,7 +57,7 @@ static void onOverrideWritten(BLEDevice central, BLECharacteristic characteristi
         } else {
             bleOverrideActive = true;
             bleOverrideAngle  = val;
-            Serial.printf("[BLE] Override angle = %.1f°\n", val);
+            SERIAL_PRINTF("[BLE] Override angle = %.1f°\n", val);
         }
     }
 }
