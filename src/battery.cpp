@@ -61,10 +61,12 @@ void batteryInit() {
     for (int i = 0; i < BATT_AVG_SAMPLES; i++) sum += samples[i];
     voltage    = sum / BATT_AVG_SAMPLES;
     percent    = voltageToPercent(voltage);
-    lowBattery = (percent < BATTERY_LOW_THRESHOLD);
+    // Don't flag low battery if no battery connected (voltage < 0.5V)
+    lowBattery = (voltage > 0.5f) && (percent < BATTERY_LOW_THRESHOLD);
 
     lastReadMs = millis();
-    Serial.printf("[BATT] Init: %.2fV → %d%%\n", voltage, percent);
+    Serial.printf("[BATT] Init: %.2fV → %d%% (low=%s)\n", voltage, percent,
+                  lowBattery ? "YES" : "NO");
 }
 
 void batteryUpdate() {
@@ -88,7 +90,8 @@ void batteryUpdate() {
 
     // Update percent & low flag
     percent    = voltageToPercent(voltage);
-    lowBattery = (percent < BATTERY_LOW_THRESHOLD);
+    // Don't flag low battery if no battery connected (voltage < 0.5V)
+    lowBattery = (voltage > 0.5f) && (percent < BATTERY_LOW_THRESHOLD);
 }
 
 uint8_t batteryGetPercent() {

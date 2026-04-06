@@ -99,9 +99,9 @@ static const char* MODE_NAMES[MODE_COUNT] = {
 // ============================================================================
 // E-INK DISPLAY
 // ============================================================================
-#define EINK_REFRESH_INTERVAL_MS    5000    // Refresh every 5 seconds
-#define EINK_WIDTH                  250
-#define EINK_HEIGHT                 122
+#define EINK_REFRESH_INTERVAL_MS    10000   // Refresh every 10 seconds
+#define EINK_WIDTH                  200
+#define EINK_HEIGHT                 200
 
 // ============================================================================
 // BLE
@@ -116,6 +116,7 @@ static const char* MODE_NAMES[MODE_COUNT] = {
 #define BLE_CHAR_DISTANCE_UUID      "12345678-1234-5678-1234-56789abcdef3"
 #define BLE_CHAR_SHOTS_UUID         "12345678-1234-5678-1234-56789abcdef4"
 #define BLE_CHAR_BATTERY_UUID       "12345678-1234-5678-1234-56789abcdef5"
+#define BLE_CHAR_OVERRIDE_UUID      "12345678-1234-5678-1234-56789abcdef6"  // iPhone → ESP: override angle
 
 // ============================================================================
 // BATTERY

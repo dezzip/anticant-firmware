@@ -29,4 +29,10 @@ bool bleIsConnected();
 void bleStartAdvertising();
 void bleStopAdvertising();
 
+/// Returns true if the iPhone has sent an override angle.
+bool bleHasOverride();
+
+/// Returns the override angle sent by the iPhone (-999 if none).
+float bleGetOverrideAngle();
+
 #endif // BLE_SERVICE_H

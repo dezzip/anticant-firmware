@@ -17,10 +17,15 @@ static NimBLECharacteristic*  pCharMode     = nullptr;
 static NimBLECharacteristic*  pCharDistance  = nullptr;
 static NimBLECharacteristic*  pCharShots    = nullptr;
 static NimBLECharacteristic*  pCharBattery  = nullptr;
+static NimBLECharacteristic*  pCharOverride = nullptr;  // iPhone → ESP: override angle
 
 static uint32_t lastNotifyMs    = 0;
 static bool     bleReady        = false;
 static bool     deviceConnected = false;
+
+// Override angle from iPhone (-999 = no override)
+static float    bleOverrideAngle = -999.0f;
+static bool     bleOverrideActive = false;
 
 // ============================================================================
 // Connection callbacks
@@ -32,8 +37,29 @@ class ServerCallbacks : public NimBLEServerCallbacks {
     }
     void onDisconnect(NimBLEServer* pSrv) override {
         deviceConnected = false;
+        bleOverrideActive = false;  // Reset override on disconnect
+        bleOverrideAngle = -999.0f;
         Serial.println("[BLE] Client disconnected — restarting advertising");
         NimBLEDevice::startAdvertising();
+    }
+};
+
+// Callback for iPhone writing override angle
+class OverrideCallbacks : public NimBLECharacteristicCallbacks {
+    void onWrite(NimBLECharacteristic* pChar) override {
+        if (pChar->getDataLength() >= 4) {
+            float val = pChar->getValue<float>();
+            if (val < -900.0f) {
+                // Special value = disable override
+                bleOverrideActive = false;
+                bleOverrideAngle = -999.0f;
+                Serial.println("[BLE] Override OFF");
+            } else {
+                bleOverrideActive = true;
+                bleOverrideAngle = val;
+                Serial.printf("[BLE] Override angle = %.1f°\n", val);
+            }
+        }
     }
 };
 
@@ -71,6 +97,13 @@ void bleInit() {
         BLE_CHAR_BATTERY_UUID,
         NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY
     );
+
+    // Override angle: iPhone writes to this to control LEDs
+    pCharOverride = pService->createCharacteristic(
+        BLE_CHAR_OVERRIDE_UUID,
+        NIMBLE_PROPERTY::WRITE | NIMBLE_PROPERTY::WRITE_NR
+    );
+    pCharOverride->setCallbacks(new OverrideCallbacks());
 
     // Set initial values
     float initCant = 0.0f;
@@ -137,4 +170,12 @@ void bleStartAdvertising() {
 
 void bleStopAdvertising() {
     if (bleReady) NimBLEDevice::stopAdvertising();
+}
+
+bool bleHasOverride() {
+    return bleOverrideActive;
+}
+
+float bleGetOverrideAngle() {
+    return bleOverrideAngle;
 }

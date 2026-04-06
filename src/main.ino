@@ -27,6 +27,8 @@
 // ============================================================================
 static DistancePreset currentDistance = DIST_100M;
 static UserMode       currentMode    = MODE_TRAINING;
+static bool           imuAvailable   = false;
+static uint32_t       lastImuUs      = 0;
 
 // ============================================================================
 // Button State Machine
@@ -166,14 +168,10 @@ void setup() {
     batteryInit();
 
     Serial.println("[INIT] IMU...");
-    if (!imuInit()) {
-        Serial.println("[INIT] FATAL: IMU init failed. Halting.");
-        while (true) {
-            // Flash red LED as error indicator
-            // (If NeoPixel isn't initialized yet, this won't work,
-            //  but at least we halt.)
-            delay(1000);
-        }
+    bool imuOk = imuInit();
+    if (!imuOk) {
+        Serial.println("[INIT] WARNING: IMU not found — running without IMU");
+        Serial.println("[INIT] Cant angle fixed at 0.0 deg (always LEVEL)");
     }
 
     Serial.println("[INIT] LEDs...");
@@ -188,6 +186,7 @@ void setup() {
     Serial.println("[INIT] BLE...");
     bleInit();
 
+    imuAvailable = imuOk;
     Serial.println("[INIT] ===== ALL SYSTEMS GO =====");
     Serial.printf("[INIT] Distance: %d m | Mode: %s\n",
                   DISTANCE_VALUES[currentDistance],
@@ -198,14 +197,12 @@ void setup() {
 // MAIN LOOP
 // ============================================================================
 
-static uint32_t lastImuUs = 0;
-
 void loop() {
     uint32_t nowUs = micros();
     uint32_t nowMs = millis();
 
     // ---- IMU Update @ 60 Hz ----
-    if (nowUs - lastImuUs >= IMU_UPDATE_INTERVAL_US) {
+    if (imuAvailable && (nowUs - lastImuUs >= IMU_UPDATE_INTERVAL_US)) {
         lastImuUs = nowUs;
 
         // Read & filter IMU
@@ -221,8 +218,29 @@ void loop() {
         handleButton(btnEvt);
     }
 
+    // ---- Cant angle: BLE override > IMU > 0° ----
+    float cantAngle;
+    if (bleHasOverride()) {
+        // iPhone is controlling the angle
+        cantAngle = bleGetOverrideAngle();
+    } else if (imuAvailable) {
+        cantAngle = imuGetCantAngle();
+    } else {
+        // No IMU, no override — fixed at 0°
+        cantAngle = 0.0f;
+    }
+
+    // ---- Debug print every 500ms ----
+    static uint32_t lastDebugMs = 0;
+    if (nowMs - lastDebugMs >= 500) {
+        lastDebugMs = nowMs;
+        Serial.printf("[LOOP] cant=%.1f° tol=%.1f° mode=%s dist=%dm\n",
+                      cantAngle, TOLERANCE_VALUES[currentDistance],
+                      MODE_NAMES[currentMode],
+                      DISTANCE_VALUES[currentDistance]);
+    }
+
     // ---- LED update (every loop iteration for smooth animation) ----
-    float cantAngle = imuGetCantAngle();
     float tolerance = TOLERANCE_VALUES[currentDistance];
     ledsUpdate(cantAngle, tolerance, currentMode, batteryIsLow());
 
